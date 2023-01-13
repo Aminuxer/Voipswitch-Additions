@@ -32,21 +32,21 @@ Migration plan
 1. Stop voipswitch application on windows
 2. Export refills sql dump
 3. export balances sql dump
-4. Export CDR data for 2023-01 for buh and copy to amcave
-5. Disable port for voipserver *.*.250.24 port 13, SAVE CONFIG
+4. Export CDR data for last month for buh and copy to any workstation/server
+5. Disable port for old voipserver at switch, SAVE CONFIG. or old server poweroff
 
 6. Import refills sql-dump
 7. Import balances
 8. Enable trunks in new server
-9. Change IP 0.14 to 0.13, rename and restart CT
+9. Change IP on MagnusBilling to old one (substitute old IP), rename and restart VM
 10. Make test calls:
-   **04999 -> mobile
-   **04999 -> **74566 , **74588
-   mobile  -> **04999
-   mobile  -> **74566
-   fixed   -> **04999
-   **04999 -> fixed
-   **04999 -> support
+   **DID -> mobile
+   **DID -> YourCity, ExtCity
+   mobile  -> **DID-retail
+   mobile  -> **DID-pbx
+   fixed   -> **DID
+   **DID -> fixed
+   **DID -> another department
 11. Verify balances and CDR
 ';
 
