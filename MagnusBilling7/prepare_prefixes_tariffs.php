@@ -3,7 +3,10 @@
 include "config.php";
 
 if ( $_SESSION['isAdmin'] != 1 ) { print '<a href="../" target="_blank">Only for admins</a>'; die; }
+$only_sql = isset($_POST['only_sql']) ? $_POST['only_sql'] : '';
+$hide_delete_queries = isset($_POST['hide_delete_queries']) ? $_POST['hide_delete_queries'] : '';
 
+if ( $only_sql != 'on') {
 print "<html><head>
     <title>Magnus Tarifer (1)</title>
 <style>
@@ -17,6 +20,7 @@ print "<html><head>
 <body>
 <h2>Prefixes and tariffs pre-processor</h2>
 <h3>Analyze uploaded CSV file for selected provider and prepare SQL-scripts for upload Provider Rates (Uplink tariffs) in Magnus Billing 7</h3>";
+};
 
 $mprefs = array();   // Existing prefix-list array
 $mprovt = array();   // Existing provider-prices array
@@ -69,14 +73,14 @@ if ( isset($_POST['hid1']) ) {
            $line = fgetcsv($tmpfile, null, $delimiter);
 
            if ( $csv_format == 'pref_desc_price' ) {
-                $npref = $line[0];
+                $npref = addslashes($line[0]);
                 $ndesc = addslashes($line[1]);
                 $ncost = floatval(str_replace(",", ".", $line[2]));
                 $src_lines .= "$n $npref $ndesc $ncost\n";
            } elseif ( $csv_format == 'desc_pref_price' ) {
-                $npref = $line[1];
-                $ndesc = addslashes($line[0]);
-                $ncost = floatval(str_replace(",", ".", $line[2]));
+                $npref = isset($line[1]) ? addslashes($line[1]) : '';
+                $ndesc = isset($line[0]) ? addslashes($line[0]) : '';
+                $ncost = isset($line[2]) ? floatval(str_replace(",", ".", $line[2])) : 0;
                 $src_lines .= "$n $npref $ndesc $ncost\n";
            }
 
@@ -120,28 +124,32 @@ if ( isset($_POST['hid1']) ) {
 
      // Prepare outdated prices DELETEs
      // print_r($mprovt);
-     foreach ( $mprovt as $cprefix => $delarr ) {
-        $dprice .= "DELETE FROM `pkg_rate_provider` WHERE `id` = '".$delarr['rate_prov_id']."' AND `id_provider` = '$provider' AND `id_prefix` = '".$delarr['prefix_id']."' AND `buyrate` = '".$delarr['cost']."' LIMIT 1; -- prefix $cprefix\n";
-        $del_rate_count++;
-     }
+     if ( $hide_delete_queries != 'on' ) {
+         foreach ( $mprovt as $cprefix => $delarr ) {
+            $dprice .= "DELETE FROM `pkg_rate_provider` WHERE `id` = '".$delarr['rate_prov_id']."' AND `id_provider` = '$provider' AND `id_prefix` = '".$delarr['prefix_id']."' AND `buyrate` = '".$delarr['cost']."' LIMIT 1; -- prefix $cprefix\n";
+            $del_rate_count++;
+         }
+     } else { $dprice .= "\n-- DELETE QUERIES HIDDEN --\n"; };
 
-     print '<table>';
-     print "<tr><td> <div class=\"file\">-- Uploaded --<Br/>File:  <B>".$_FILES['csv_file']['name']."</B><Br/>Type: <B>".$_FILES['csv_file']['type']."</B> [ $delimiter ]<Br/>Size: <B>".$_FILES['csv_file']['size']."</B> bytes;</div>
-                     <div class=\"file\">-- Provider --<Br/>iD:  <B>$provider</B><Br/>Name: ".get_name_provider($provider)."<B></B></div>
-                </td>";
-     print "<td> <pre> -- Existing-prefixes [already in pkg_prefix] ($exx_prefs_count):<Br/><textarea cols=\"60\" rows=\"15\">$exxprefs</textarea></pre> </td>";
-     print "<td class=\"tdwarn\"> <pre> -- Error-prefixes [Bad data for pkg_prefix] ($err_prefs_count):<Br/><textarea cols=\"60\" rows=\"15\">$errprefs</textarea></pre> </td></tr>";
-     print "<tr><td> <pre> SRC Lines [Uploaded CSV-Data] (".($n-1)."):<Br/><textarea cols=\"60\" rows=\"15\">$src_lines</textarea></pre> </td>";
-     print "<td> <pre> -- Existing-rates [prefix/provider/cost equal]  ($exx_rate_count):<Br/><textarea cols=\"60\" rows=\"15\">$exxrates</textarea></pre> </td>";
-     print "<td class=\"tdwarn\"> <pre> -- Skip rates [prefixes not found in pkg_prefix] ($err_rate_count):<Br/><textarea cols=\"60\" rows=\"15\">$errrates</textarea></pre> </td></tr>";
-     print '</table>';
+     if ( $only_sql != 'on') {
+         print '<table>';
+         print "<tr><td> <div class=\"file\">-- Uploaded --<Br/>File:  <B>".$_FILES['csv_file']['name']."</B><Br/>Type: <B>".$_FILES['csv_file']['type']."</B> [ $delimiter ]<Br/>Size: <B>".$_FILES['csv_file']['size']."</B> bytes;</div>
+                           <div class=\"file\">-- Provider --<Br/>iD:  <B>$provider</B><Br/>Name: ".get_name_provider($provider)."<B></B></div>
+                     </td>";
+         print "<td> <pre> -- Existing-prefixes [already in pkg_prefix] ($exx_prefs_count):<Br/><textarea cols=\"60\" rows=\"15\">$exxprefs</textarea></pre> </td>";
+         print "<td class=\"tdwarn\"> <pre> -- Error-prefixes [Bad data for pkg_prefix] ($err_prefs_count):<Br/><textarea cols=\"60\" rows=\"15\">$errprefs</textarea></pre> </td></tr>";
+         print "<tr><td> <pre> SRC Lines [Uploaded CSV-Data] (".($n-1)."):<Br/><textarea cols=\"60\" rows=\"15\">$src_lines</textarea></pre> </td>";
+         print "<td> <pre> -- Existing-rates [prefix/provider/cost equal]  ($exx_rate_count):<Br/><textarea cols=\"60\" rows=\"15\">$exxrates</textarea></pre> </td>";
+         print "<td class=\"tdwarn\"> <pre> -- Skip rates [prefixes not found in pkg_prefix] ($err_rate_count):<Br/><textarea cols=\"60\" rows=\"15\">$errrates</textarea></pre> </td></tr>";
+         print '</table>';
+     } else { print "<pre>use mbilling;\nSET NAMES UTF8;\n\n</pre>"; };
 
 
      print "<pre> -- SQL new-prefixes ($new_prefs_count):<Br/>$nprefs</pre>";
      print "<pre> -- SQL new-prices ($add_rate_count):<Br/>$aprice</pre>";
      print "<pre> -- SQL upd-prices ($upd_rate_count):<Br/>$uprice</pre>";
      print "<pre> -- SQL del-prices ($del_rate_count):<Br/>$dprice</pre>";
-     print "<B>-- OK, FINISH.</B>";
+     print "<pre>-- OK, FINISH.</pre>";
 
 
 } else {   // No POST, show CSV-upload form
@@ -154,6 +162,8 @@ if ( isset($_POST['hid1']) ) {
 
       Provider: '.create_select_provider('provider').'<Br/>
       <input type="hidden" name="hid1" value="v1"> <Br/><Br/>
+      Hide analyze stat form (make only SQL): <input type="checkbox" name="only_sql" /><Br/><Br/>
+      Hide Delete Queries: <input type="checkbox" name="hide_delete_queries" checked/><Br/><Br/>
       <input type="submit" value="ANALyze">
    </form>';
 };
