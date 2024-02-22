@@ -27,8 +27,12 @@ if ( isset($_POST['hid1']) ) {
    $username = preg_replace('/[\'\/"\\\\]+/', '', $username);
 
     $cdrsql = mysqli_query($db, "SELECT
-    c.starttime, c.src, c.callerid, c.calledstation, c.sessionbill, c.sessiontime, c.real_sessiontime,
-    t.name AS plan_name, p.prefix, p.destination
+    c.starttime, c.src, c.callerid, c.calledstation, c.sessionbill, c.sessiontime, c.real_sessiontime, c.id_trunk,
+    t.name AS plan_name, p.prefix, p.destination,
+      ( CASE WHEN (c.sessionbill != 0 AND c.id_trunk > 0) THEN 'STD'
+           WHEN (c.sessionbill = 0 AND p.destination != '')  THEN 'DID'
+           WHEN (c.id_trunk IS NULL AND p.destination IS NULL )  THEN 'SIP'
+        END ) AS type
 FROM `pkg_cdr` c
    LEFT JOIN pkg_plan t ON t.id = c.id_plan
    LEFT JOIN pkg_prefix p ON p.id = c.id_prefix
@@ -43,18 +47,25 @@ if ( $_POST['f_type'] == 'display') {
   };
 
 $count = $sum_money = $sum_seconds = $sum_seconds_real = 0;
-     print "N, Starting-Date-Time, SIP-login, Caller-iD, Dialed-Number, Price, Accounted-Seconds, Real-Seconds, Prefix, Prefix-description, Tariff\n";
+$uniq_types = $uniq_cid = $uniq_prefs = $uniq_dialnumber = array();
+     print "N, Starting-Date-Time, SIP-login, Caller-iD, Dialed-Number, Price, Accounted-Seconds, Real-Seconds, Prefix, Prefix-description, Tariff, Type\n";
      while ( $r = mysqli_fetch_array($cdrsql)) {
              $count++;
              $sum_money += $r['sessionbill'];
              $sum_seconds += $r['sessiontime'];
              $sum_seconds_real += $r['real_sessiontime'];
-             print "$count, ".$r['starttime'].", \"".$r['src']."\", \"".$r['callerid']."\", \"".$r['calledstation']."\", ".$r['sessionbill'].", ".$r['sessiontime'].", ".$r['real_sessiontime'].", \"".$r['prefix']."\", \"".$r['destination']."\", \"".$r['plan_name']."\"\n";
+                $type = $r['type'];
+                if ( ! isset($uniq_types[$type]) ) { $uniq_types[$type] = 0; } else { $uniq_types[$type]++; };
+                if ( ! isset($uniq_cid[$r['callerid']]) ) { $uniq_cid[$r['callerid']] = 0; } else { $uniq_cid[$r['callerid']]++; };
+                if ( ! isset($uniq_prefs[$r['prefix']]) ) { $uniq_prefs[$r['prefix']] = 0; } else { $uniq_prefs[$r['prefix']]++; };
+                if ( ! isset($uniq_dialnumber[$r['calledstation']]) ) { $uniq_dialnumber[$r['calledstation']] = 0; } else { $uniq_dialnumber[$r['calledstation']]++; };
+             print "$count, ".$r['starttime'].", \"".$r['src']."\", \"".$r['callerid']."\", \"".$r['calledstation']."\", \"".$r['sessionbill']."\", \"".$r['sessiontime']."\", \"".$r['real_sessiontime']."\", \"".$r['prefix']."\", \"".$r['destination']."\", \"".$r['plan_name']."\", \"$type\"\n";
      }
 
-     print '"SUM '.$count.'", ">= '.$year.'-'.$month.'-01", "U '.$clnt['username'].'",  "", "", "RUB '.$sum_money.'", "'. time_shorter($sum_seconds).'", "'. time_shorter($sum_seconds_real).'", "", "", ""'."\n"
-     .'"", " < '.$year2.'-'.$month2.'-01", "'.$username.'", "", "", "", "", "", "", "", "CURRENT: '.$clnt['plan_name'].'"'."\n";
-
+     $sum_types_str = '';
+     foreach ( $uniq_types as $type => $tcount ) { $sum_types_str .= "$type:$tcount; "; }
+     print '"SUM '.$count.'", ">= '.$year.'-'.$month.'-01", "U '.$clnt['username'].'",  "UNIQ '.count($uniq_cid).'", "UNIQ '.count($uniq_dialnumber).'", "RUB '.$sum_money.'", "'. time_shorter($sum_seconds).'", "'. time_shorter($sum_seconds_real).'", "UNIQ: '.count($uniq_prefs).'", "", "UNIQ: '.$sum_types_str.'", ""'."\n"
+     .'"", " < '.$year2.'-'.$month2.'-01", "'.$username.'", "", "", "", "", "", "", "", "CURRENT: '.$clnt['plan_name'].'", ""'."\n";
 
 } else {   // No POST, show dialog form
 print "<html><head>

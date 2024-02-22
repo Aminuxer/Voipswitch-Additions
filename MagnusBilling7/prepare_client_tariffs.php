@@ -5,7 +5,7 @@ include "config.php";
 if ( $_SESSION['isAdmin'] != 1 ) { print '<a href="../" target="_blank">Only for admins</a>'; die; }
 
 print "<html><head>
-    <title>Magnus Tarifer (1)</title>
+    <title>Magnus Client tariffs pre-processor</title>
 <style>
    td { background-color: green; }
    .tdwarn { background-color: orange; }
@@ -67,9 +67,9 @@ if ( isset($_POST['hid1']) ) {
         $src_lines = ''; $n = 1; $new_prefs_count = $exx_prefs_count = $err_prefs_count = $add_rate_count = $upd_rate_count = $del_rate_count = $err_rate_count = $exx_rate_count = 0;
         while(!feof($tmpfile)) {
            $line = fgetcsv($tmpfile, null, $delimiter);
-           $npref = $line[0];
-           $ndesc = addslashes($line[1]);
-           $ncost = floatval(str_replace(",", ".", $line[2]));
+           $npref = isset($line[0]) ? $line[0] : '';
+           $ndesc = isset($line[1]) ? addslashes($line[1]) : '';
+           $ncost = isset($line[2]) ? floatval(str_replace(",", ".", $line[2])) : '';
            $src_lines .= "$n $npref $ndesc $ncost\n";
 
            // Generate new prefixes INSERTs

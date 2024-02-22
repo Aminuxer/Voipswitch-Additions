@@ -5,7 +5,7 @@ include "config.php";
 if ( $_SESSION['isAdmin'] != 1 ) { print '<a href="../" target="_blank">Only for admins</a>'; die; }
 
 print "<html><head>
-    <title>Magnus Tarifer (1.1)</title>
+    <title>Magnus Prefix Renamer</title>
 <style>
    td { background-color: green; }
    .tdwarn { background-color: orange; }
@@ -43,13 +43,14 @@ if ( isset($_POST['hid1']) ) {
         $src_lines = ''; $n = 1; $new_prefs_count = $exx_prefs_count = $err_prefs_count = $add_rate_count = $upd_rate_count = $err_rate_count = $exx_rate_count = 0;
         while(!feof($tmpfile)) {
            $line = fgetcsv($tmpfile, null, $delimiter);
-           $npref = $line[0];
-           $ndesc = $line[1];
-           $ncost = $line[2];
+           $npref = isset($line[0]) ? $line[0] : '';
+           $ndesc = isset($line[1]) ? $line[1] : '';
+           $ncost = isset($line[2]) ? $line[2] : '';
            $src_lines .= "$n $npref $ndesc $ncost\n";
 
            // Generate new prefixes INSERTs
-           if ( isset($mprefs[$npref]['prefix_id']) or $mprefs[$npref]['prefix_id'] != '' ) {
+           $mp_np_prefid = isset ($mprefs[$npref]['prefix_id']) ? $mprefs[$npref]['prefix_id'] : '';
+           if ( $mp_np_prefid != '' ) {
                  if ( is_numeric($npref) and !is_numeric($ndesc) ) {
                     $new_prefs_count++;
                     $nprefs .= "UPDATE `pkg_prefix` SET `destination` = '$ndesc' WHERE `prefix` = '$npref' LIMIT 1;\n";
@@ -72,7 +73,6 @@ if ( isset($_POST['hid1']) ) {
      if ( isset($_FILES['csv_file']['name']) and $_FILES['csv_file']['name'] != '' ) {
         print '<table>';
         print "<tr><td> <div class=\"file\">-- Uploaded --<Br/>File:  <B>".$_FILES['csv_file']['name']."</B><Br/>Type: <B>".$_FILES['csv_file']['type']."</B><Br/>Size: <B>".$_FILES['csv_file']['size']."</B> bytes;</div>
-                     <div class=\"file\">-- Provider --<Br/>iD:  <B>$provider</B><Br/>Name: ".get_name_provider($provider)."<B></B></div>
                    </td>";
         print "<td> <pre> -- Non-Existing-prefixes [NOT in pkg_prefix] ($exx_prefs_count):<Br/><textarea cols=\"60\" rows=\"15\">$exxprefs</textarea></pre> </td>";
         print "<td class=\"tdwarn\"> <pre> -- Error-prefixes [Bad data for pkg_prefix] ($err_prefs_count):<Br/><textarea cols=\"60\" rows=\"15\">$errprefs</textarea></pre> </td></tr>";

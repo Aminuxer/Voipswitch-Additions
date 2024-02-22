@@ -8,7 +8,7 @@ $hide_delete_queries = isset($_POST['hide_delete_queries']) ? $_POST['hide_delet
 
 if ( $only_sql != 'on') {
 print "<html><head>
-    <title>Magnus Tarifer (1)</title>
+    <title>Magnus Uplink tariffs pre-processor</title>
 <style>
    td { background-color: green; }
    .tdwarn { background-color: orange; }
@@ -73,9 +73,9 @@ if ( isset($_POST['hid1']) ) {
            $line = fgetcsv($tmpfile, null, $delimiter);
 
            if ( $csv_format == 'pref_desc_price' ) {
-                $npref = addslashes($line[0]);
-                $ndesc = addslashes($line[1]);
-                $ncost = floatval(str_replace(",", ".", $line[2]));
+                $npref = isset($line[0]) ? addslashes($line[0]) : '' ;
+                $ndesc = isset($line[1]) ? addslashes($line[1]) : '' ;
+                $ncost = isset($line[2]) ? floatval(str_replace(",", ".", $line[2])) : '' ;
                 $src_lines .= "$n $npref $ndesc $ncost\n";
            } elseif ( $csv_format == 'desc_pref_price' ) {
                 $npref = isset($line[1]) ? addslashes($line[1]) : '';
